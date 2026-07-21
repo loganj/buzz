@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getDiscoveredPersonaModelOptions } from "./usePersonaModelDiscovery.ts";
+import {
+  getDiscoveredPersonaModelOptions,
+  synthesizeEmptyDiscoveryStatus,
+} from "./usePersonaModelDiscovery.ts";
 
 function response(overrides = {}) {
   return {
@@ -109,4 +112,53 @@ test("returns null when discovery is unsupported or empty", () => {
     null,
   );
   assert.equal(getDiscoveredPersonaModelOptions(null, ""), null);
+});
+
+// ── synthesizeEmptyDiscoveryStatus ────────────────────────────────────────────
+
+test("synthesizeEmptyDiscoveryStatus_emptyModels_producesWarningStatus", () => {
+  const status = synthesizeEmptyDiscoveryStatus(
+    response({ models: [], agentName: "Claude Code" }),
+    "",
+  );
+  assert.equal(status?.tone, "warning");
+  assert.match(status?.message ?? "", /Claude Code/);
+  assert.match(status?.message ?? "", /reported no models/);
+});
+
+test("synthesizeEmptyDiscoveryStatus_supportsSwitchingFalse_producesWarningStatus", () => {
+  const status = synthesizeEmptyDiscoveryStatus(
+    response({
+      supportsSwitching: false,
+      models: [{ id: "gpt-4", name: "GPT-4", description: null }],
+      agentName: "Codex",
+    }),
+    "",
+  );
+  assert.equal(status?.tone, "warning");
+  assert.match(status?.message ?? "", /Codex/);
+});
+
+test("synthesizeEmptyDiscoveryStatus_withUsableModels_returnsNull", () => {
+  assert.equal(
+    synthesizeEmptyDiscoveryStatus(
+      response({
+        models: [
+          { id: "claude-sonnet-5", name: "Claude Sonnet 5", description: null },
+        ],
+        agentName: "Claude Code",
+      }),
+      "",
+    ),
+    null,
+  );
+});
+
+test("synthesizeEmptyDiscoveryStatus_emptyAgentName_usesGenericFallback", () => {
+  const status = synthesizeEmptyDiscoveryStatus(
+    response({ models: [], agentName: "" }),
+    "",
+  );
+  assert.equal(status?.tone, "warning");
+  assert.match(status?.message ?? "", /This agent/);
 });

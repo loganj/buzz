@@ -26,6 +26,8 @@ import {
 import { MODEL_DISCOVERY_LOADING_VALUE } from "./usePersonaModelDiscovery";
 import type { PersonaModelDiscoveryStatus } from "./personaModelDiscoveryStatus";
 
+export const MODEL_NO_MODELS_VALUE = "__no_models__";
+
 export type AgentDropdownOption = {
   disabled?: boolean;
   label: React.ReactNode;
@@ -422,6 +424,16 @@ export function AgentModelField({
       ? [{ label: "Custom model...", value: CUSTOM_MODEL_DROPDOWN_VALUE }]
       : []),
   ];
+  // An opened dropdown must never show a blank popover. When all the above
+  // yields an empty list and discovery has finished, add a disabled sentinel
+  // row so the user sees "No models found" instead of a bare white bar.
+  if (modelOptions.length === 0 && !modelDiscoveryLoading) {
+    modelOptions.push({
+      disabled: true,
+      label: "No models found",
+      value: MODEL_NO_MODELS_VALUE,
+    });
+  }
   const stableSelectedModelLabel =
     keepSelectedModelValueLabel &&
     modelSelectValue === trimmedModel &&

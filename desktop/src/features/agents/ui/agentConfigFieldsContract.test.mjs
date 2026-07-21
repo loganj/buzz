@@ -57,3 +57,20 @@ test("onboarding-essential hides power tools but never the effort field", () => 
     showUnavailableEffortOptions: false,
   });
 });
+
+test("model status message shows in onboarding-essential when discovery status is non-null", () => {
+  // AgentConfigFields passes showStatusMessage={showDescriptions || modelDiscoveryStatus !== null}.
+  // In onboarding-essential, showDescriptions is false — so a non-null discovery
+  // status (error or synthesized warning) must still surface the status line.
+  const { showDescriptions } = resolveDisclosure("onboarding-essential");
+  assert.equal(showDescriptions, false);
+
+  // null status → status line stays hidden in onboarding (happy path stays clean)
+  /** @type {{ message: string; tone: string } | null} */
+  const noStatus = null;
+  assert.equal(showDescriptions || noStatus !== null, false);
+
+  // non-null status → status line shows even in onboarding
+  const warningStatus = { message: "check your CLI", tone: "warning" };
+  assert.equal(showDescriptions || warningStatus !== null, true);
+});

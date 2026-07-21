@@ -682,7 +682,7 @@ export function AgentConfigFields({
           labelClassName={fieldLabelClassName}
           selectClassName={selectClassName}
           showCustomModelOption={showCustomModelOption}
-          showStatusMessage={showDescriptions}
+          showStatusMessage={showDescriptions || modelDiscoveryStatus !== null}
           testId="global-agent-model"
           useCustomSelect={useCustomSelect}
           useChevronIcon={useChevronSelectIcon}

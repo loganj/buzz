@@ -82,6 +82,26 @@ export function getDiscoveredPersonaModelOptions(
   ];
 }
 
+/**
+ * Returns a warning status when a discovery response resolves but contains no
+ * usable model options (either because the harness does not support model
+ * switching, or because it returned an empty model list). When options ARE
+ * available, returns null so callers can clear any prior status.
+ */
+export function synthesizeEmptyDiscoveryStatus(
+  response: AgentModelsResponse,
+  provider: string,
+): PersonaModelDiscoveryStatus | null {
+  if (getDiscoveredPersonaModelOptions(response, provider) !== null) {
+    return null;
+  }
+  const agentLabel = response.agentName.trim() || "This agent";
+  return {
+    message: `${agentLabel} reported no models. Check that the CLI is installed and signed in, then reopen this screen.`,
+    tone: "warning",
+  };
+}
+
 export function usePersonaModelDiscovery({
   envVars,
   isCustomProviderEditing,
@@ -191,7 +211,9 @@ export function usePersonaModelDiscovery({
     if (cached) {
       setModelDiscoveryData(cached);
       setModelDiscoveryDataKey(activeModelDiscoveryKey);
-      setModelDiscoveryStatus(null);
+      setModelDiscoveryStatus(
+        synthesizeEmptyDiscoveryStatus(cached, trimmedProvider),
+      );
       setModelDiscoveryStatusKey(activeModelDiscoveryKey);
       setModelDiscoveryLoading(false);
       return;
@@ -216,7 +238,9 @@ export function usePersonaModelDiscovery({
           modelDiscoveryCacheRef.current.set(activeModelDiscoveryKey, response);
           setModelDiscoveryData(response);
           setModelDiscoveryDataKey(activeModelDiscoveryKey);
-          setModelDiscoveryStatus(null);
+          setModelDiscoveryStatus(
+            synthesizeEmptyDiscoveryStatus(response, trimmedProvider),
+          );
           setModelDiscoveryStatusKey(activeModelDiscoveryKey);
         })
         .catch((error) => {
