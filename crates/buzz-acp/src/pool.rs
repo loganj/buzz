@@ -972,6 +972,25 @@ async fn create_session_and_apply_model(
     agent_core: Option<&str>,
     channel: NewSessionChannelContext<'_>,
 ) -> Result<String, AcpError> {
+    let mut session_cwd = ctx.cwd.clone();
+    if let Some(channel_id) = channel.id {
+        let channel_str = channel_id.to_string();
+        session_cwd = std::path::Path::new(&ctx.cwd)
+            .join("channels")
+            .join(&channel_str)
+            .to_string_lossy()
+            .to_string();
+
+        if let Err(e) = std::fs::create_dir_all(&session_cwd) {
+            tracing::error!(
+                target: "pool::session",
+                "Failed to create per-channel workspace {}: {}",
+                session_cwd, e
+            );
+            return Err(AcpError::Io(e));
+        }
+    }
+
     // Build base_prompt + system_prompt + agent core + canvas metadata into a
     // single prompt. Standard protocol-v2 agents receive it in `session/new`;
     // Goose receives it through the custom request below. Legacy agents receive
@@ -983,7 +1002,7 @@ async fn create_session_and_apply_model(
         with_huddle_instructions(
             with_core(
                 with_team(
-                    framed_system_prompt(&ctx.cwd, ctx.base_prompt, ctx.system_prompt.as_deref()),
+                    framed_system_prompt(&session_cwd, ctx.base_prompt, ctx.system_prompt.as_deref()),
                     ctx.team_instructions.as_deref(),
                 ),
                 agent_core,
@@ -1007,7 +1026,7 @@ async fn create_session_and_apply_model(
     let resp = agent
         .acp
         .session_new_full(
-            &ctx.cwd,
+            &session_cwd,
             mcp_servers,
             session_new_system_prompt(
                 is_goose,
